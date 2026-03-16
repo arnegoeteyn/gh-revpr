@@ -17,8 +17,8 @@ type Comment struct {
 }
 
 var (
-	startCommentRegex = regexp.MustCompile(`^//\s*PR:\s*(?<PComment>.*)`)
-	commentRegex      = regexp.MustCompile(`^//\s?\s(?<PComment>.*)`)
+	startCommentRegex = regexp.MustCompile(`^\s*//\s*PR:\s*(?<PComment>.*)`)
+	commentRegex      = regexp.MustCompile(`^\s*//\s?\s(?<PComment>.*)`)
 )
 
 func Comments(commit *object.Commit) ([]Comment, error) {
