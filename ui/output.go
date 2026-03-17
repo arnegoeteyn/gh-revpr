@@ -181,3 +181,18 @@ func (s *Spinner) Stop() {
 	close(s.stop)
 	s.wg.Wait()
 }
+
+func PRBody(body string) {
+	if body == "" {
+		return
+	}
+
+	prBodyHeader := color.New(color.FgBlue, color.Bold).SprintFunc()
+	prBody := color.New(color.FgWhite).SprintFunc()
+	fmt.Fprintln(os.Stdout)
+	fmt.Fprintln(os.Stdout, prBodyHeader("┌─ PR Body"))
+	for line := range strings.SplitSeq(body, "\n") {
+		fmt.Fprintf(os.Stdout, "%s %s\n", prBodyHeader("│"), prBody(line))
+	}
+	fmt.Fprintln(os.Stdout, prBodyHeader("└─"))
+}

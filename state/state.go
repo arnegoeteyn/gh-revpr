@@ -5,7 +5,7 @@ import (
 	"os"
 )
 
-const path = ".revpr"
+const path = ".revpr/state"
 
 type config struct {
 	CurrentPR string `json:"currentPR"`

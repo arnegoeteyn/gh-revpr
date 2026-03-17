@@ -41,12 +41,14 @@ Later commits can be reviewed by running 'revpr continue'.`,
 			os.Exit(1)
 		}
 
-		branch, err := gh.GetPullRequestBranch(pr)
+		pullRequest, err := gh.GetPullRequest(pr)
 		if err != nil {
 			ui.Error("Failed to get PR branch: %v", err)
 			Debug("Failed to get PR branch", "error", err)
 			os.Exit(1)
 		}
+
+		branch := pullRequest.Head.Ref
 		Debug("Got PR branch", "branch", branch)
 
 		if err := gitops.Checkout(repo, branch); err != nil {
@@ -56,8 +58,17 @@ Later commits can be reviewed by running 'revpr continue'.`,
 		}
 		Debug("Checked out branch", "branch", branch)
 
-		ui.Success("Created worktree")
-		ui.Success("Checked out branch: %s", branch)
+		ui.Success("Created worktree for review")
+
+		wt, err := repo.Worktree()
+		if err != nil {
+			ui.Error("Failed to get worktree: %v", err)
+			Debug("Failed to get worktree", "error", err)
+			os.Exit(1)
+		}
+		ui.Info("Worktree at: %s", wt.Filesystem.Root())
+
+		ui.PRBody(pullRequest.Body)
 	},
 }
 

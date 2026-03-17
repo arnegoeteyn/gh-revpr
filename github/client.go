@@ -11,6 +11,7 @@ type PullRequest struct {
 	Head struct {
 		Ref string `json:"ref"`
 	} `json:"head"`
+	Body string `json:"body"`
 }
 
 type Client struct {
@@ -36,6 +37,16 @@ func NewClient() (*Client, error) {
 		owner:      repo.Owner,
 		repo:       repo.Name,
 	}, nil
+}
+
+func (c *Client) GetPullRequest(prNumber string) (PullRequest, error) {
+	var pr PullRequest
+	path := fmt.Sprintf("repos/%s/%s/pulls/%s", c.owner, c.repo, prNumber)
+	if err := c.restClient.Get(path, &pr); err != nil {
+		return PullRequest{}, err
+	}
+
+	return pr, nil
 }
 
 func (c *Client) GetPullRequestBranch(prNumber string) (string, error) {
