@@ -87,7 +87,16 @@ to quickly create a Cobra application.`,
 			os.Exit(1)
 		}
 
-		event := github.ReviewEventApprove
+		event := ui.Select("PR review event", []ui.SelectOption{
+			{Value: string(github.ReviewEventApprove), Description: "Approve the PR"},
+			{Value: string(github.ReviewEventComment), Description: "Leave a comment without approval"},
+			{Value: string(github.ReviewEventRequestChanges), Description: "Request changes to the PR"},
+		})
+		if event == "" {
+			ui.Warn("review creation cancelled")
+			return
+		}
+
 		ui.Info("submitting current PR with event %q", event)
 
 		var githubComments []github.Comment
@@ -99,10 +108,12 @@ to quickly create a Cobra application.`,
 			})
 		}
 
+		body := ui.Ask("PR review body")
+
 		if err := client.Review(currentPR, github.Review{
-			Event:    event,
+			Event:    github.ReviewEvent(event),
 			Comments: githubComments,
-			Body:     "hey allemaal",
+			Body:     body,
 		}); err != nil {
 			ui.Error("could not create review")
 			slog.Error("could not create review", "error", err)

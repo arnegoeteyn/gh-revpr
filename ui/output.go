@@ -53,6 +53,29 @@ func Ask(message string) string {
 	return scanner.Text()
 }
 
+type SelectOption struct {
+	Value       string
+	Description string
+}
+
+func Select(message string, options []SelectOption) string {
+	fmt.Fprintf(os.Stdout, "%s %s\n", info("?"), message)
+	for i, opt := range options {
+		fmt.Fprintf(os.Stdout, "  %d) %s - %s\n", i+1, opt.Value, opt.Description)
+	}
+	fmt.Fprintf(os.Stdout, "%s ", info("?"))
+	scanner := bufio.NewScanner(os.Stdin)
+	for scanner.Scan() {
+		response := scanner.Text()
+		var idx int
+		if _, err := fmt.Sscanf(response, "%d", &idx); err == nil && idx > 0 && idx <= len(options) {
+			return options[idx-1].Value
+		}
+		fmt.Fprintf(os.Stdout, "%s Invalid choice. Try again: ", error_("✗"))
+	}
+	return ""
+}
+
 type Comment struct {
 	LineNumber  int
 	FilePath    string
