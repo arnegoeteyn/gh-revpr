@@ -8,6 +8,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/arnegoeteyn/gh-revpr/github"
 	"github.com/arnegoeteyn/gh-revpr/pr"
 	"github.com/arnegoeteyn/gh-revpr/state"
 	"github.com/arnegoeteyn/gh-revpr/ui"
@@ -82,6 +83,22 @@ to quickly create a Cobra application.`,
 
 		ui.Info("Creating review for PR #%s", currentPR)
 
+		client, err := github.NewClient()
+		if err != nil {
+			ui.Error("could not connect to github: %s", err.Error())
+			slog.Error("could not connect to github", "error", err)
+			os.Exit(1)
+		}
+
+		id, err := client.StartReview(currentPR)
+		if err != nil {
+			ui.Error("could not create pending jreview: %s", err.Error())
+			slog.Error("could not create pending review", "error", err)
+			os.Exit(1)
+		}
+
+		slog.Debug("created pending review", "review_id", id)
+
 		ui.Info("uploading %d comment(s) on current PR", len(comments))
 
 		spinner := ui.StartSpinner("uploading comments...")
@@ -90,6 +107,16 @@ to quickly create a Cobra application.`,
 			time.Sleep(5 * time.Second)
 		}
 		spinner.Stop()
+
+		event := github.ReviewEventApprove
+
+		if err := client.CompleteReview(currentPR, id, event); err != nil {
+			ui.Error("could not complete pending review: %s", err.Error())
+			slog.Error("could not complete pending review", "error", err)
+			os.Exit(1)
+		}
+
+		ui.Info("submitting current PR with event %q", event)
 
 		ui.Success("Approved PR with %d comments", len(comments))
 	},

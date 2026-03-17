@@ -15,6 +15,9 @@ type PullRequest struct {
 
 type Client struct {
 	restClient *api.RESTClient
+
+	owner string
+	repo  string
 }
 
 func NewClient() (*Client, error) {
@@ -22,7 +25,17 @@ func NewClient() (*Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("could not create GitHub API client: %w", err)
 	}
-	return &Client{restClient: client}, nil
+
+	repo, err := repository.Current()
+	if err != nil {
+		return nil, fmt.Errorf("could not get current repository: %w", err)
+	}
+
+	return &Client{
+		restClient: client,
+		owner:      repo.Owner,
+		repo:       repo.Name,
+	}, nil
 }
 
 func (c *Client) GetPullRequestBranch(prNumber string) (string, error) {
