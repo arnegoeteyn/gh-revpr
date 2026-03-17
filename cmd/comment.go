@@ -6,7 +6,6 @@ package cmd
 import (
 	"log/slog"
 	"os"
-	"time"
 
 	"github.com/arnegoeteyn/gh-revpr/github"
 	"github.com/arnegoeteyn/gh-revpr/pr"
@@ -81,8 +80,6 @@ to quickly create a Cobra application.`,
 			currentPR = ui.Ask("What PR should this review target?")
 		}
 
-		ui.Info("Creating review for PR #%s", currentPR)
-
 		client, err := github.NewClient()
 		if err != nil {
 			ui.Error("could not connect to github: %s", err.Error())
@@ -90,33 +87,27 @@ to quickly create a Cobra application.`,
 			os.Exit(1)
 		}
 
-		id, err := client.StartReview(currentPR)
-		if err != nil {
-			ui.Error("could not create pending jreview: %s", err.Error())
-			slog.Error("could not create pending review", "error", err)
-			os.Exit(1)
-		}
-
-		slog.Debug("created pending review", "review_id", id)
-
-		ui.Info("uploading %d comment(s) on current PR", len(comments))
-
-		spinner := ui.StartSpinner("uploading comments...")
-		for i := range comments {
-			spinner.Message("uploading comment %d/%d", i+1, len(comments))
-			time.Sleep(5 * time.Second)
-		}
-		spinner.Stop()
-
 		event := github.ReviewEventApprove
+		ui.Info("submitting current PR with event %q", event)
 
-		if err := client.CompleteReview(currentPR, id, event); err != nil {
-			ui.Error("could not complete pending review: %s", err.Error())
-			slog.Error("could not complete pending review", "error", err)
-			os.Exit(1)
+		var githubComments []github.Comment
+		for _, c := range comments {
+			githubComments = append(githubComments, github.Comment{
+				Line: c.LineNumber,
+				Path: c.FilePath,
+				Body: c.Content,
+			})
 		}
 
-		ui.Info("submitting current PR with event %q", event)
+		if err := client.Review(currentPR, github.Review{
+			Event:    event,
+			Comments: githubComments,
+			Body:     "hey allemaal",
+		}); err != nil {
+			ui.Error("could not create review")
+			slog.Error("could not create review", "error", err)
+			os.Exit(1)
+		}
 
 		ui.Success("Approved PR with %d comments", len(comments))
 	},

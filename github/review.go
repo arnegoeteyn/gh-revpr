@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 )
 
 type pendingReview struct {
@@ -18,39 +19,30 @@ const (
 	ReviewEventRequestChanges ReviewEvent = "REQUEST_CHANGES"
 )
 
-func (c *Client) StartReview(pr string) (int, error) {
+type Review struct {
+	Event    ReviewEvent `json:"event"`
+	Comments []Comment   `json:"comments"`
+	Body     string      `json:"body"`
+}
+
+type Comment struct {
+	Body string `json:"body"`
+	Path string `json:"path"`
+	Line int    `json:"line"`
+}
+
+func (c *Client) Review(pr string, review Review) error {
 	endpoint := fmt.Sprintf("repos/%s/%s/pulls/%s/reviews", c.owner, c.repo, pr)
-
-	var review pendingReview
-	if err := c.restClient.Post(endpoint, nil, &review); err != nil {
-		return 0, fmt.Errorf("could not start review: %w", err)
-	}
-
-	return review.Id, nil
-}
-
-type submitReview struct {
-	Event string `json:"event"`
-	Body  string `json:"body"`
-}
-
-func (c *Client) CompleteReview(pr string, reviewId int, event ReviewEvent) error {
-	endpoint := fmt.Sprintf(
-		"repos/%s/%s/pulls/%s/reviews/%d/events",
-		c.owner, c.repo, pr, reviewId)
-
-	review := submitReview{
-		Event: string(event),
-		Body:  "made with the cool PR tool",
-	}
 
 	json, err := json.Marshal(review)
 	if err != nil {
 		return fmt.Errorf("could not marshal review: %w", err)
 	}
 
+	slog.Debug("generated request for review", "endpoint", endpoint, "body", string(json))
+
 	if err := c.restClient.Post(endpoint, bytes.NewReader(json), nil); err != nil {
-		return fmt.Errorf("could not complete review: %w", err)
+		return fmt.Errorf("could not create review: %w", err)
 	}
 
 	return nil
