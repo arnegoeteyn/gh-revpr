@@ -39,13 +39,8 @@ func NewClient() (*Client, error) {
 }
 
 func (c *Client) GetPullRequestBranch(prNumber string) (string, error) {
-	repo, err := repository.Current()
-	if err != nil {
-		return "", fmt.Errorf("could not get current repository: %w", err)
-	}
-
 	var pr PullRequest
-	path := fmt.Sprintf("repos/%s/%s/pulls/%s", repo.Owner, repo.Name, prNumber)
+	path := fmt.Sprintf("repos/%s/%s/pulls/%s", c.owner, c.repo, prNumber)
 	if err := c.restClient.Get(path, &pr); err != nil {
 		return "", err
 	}
