@@ -32,18 +32,24 @@ func Comments(commit *object.Commit) ([]Comment, error) {
 	var allComments []Comment
 
 	for _, fp := range patch.FilePatches() {
-		_, to := fp.Files()
+		from, to := fp.Files()
+
+		if to == nil {
+			slog.Debug("skipping deleted file", "file", from.Path())
+			continue
+		}
+
+		slog.Debug("Processing file", "file", to.Path())
 
 		if fp.IsBinary() {
 			slog.Warn("skipping binary file", "path", to.Path())
+			continue
 		}
 
 		f, err := commit.File(to.Path())
 		if err != nil {
 			panic(err)
 		}
-
-		slog.Debug("Processing file", "file", f.Name)
 
 		comments, err := commentsFromFile(f)
 		if err != nil {
