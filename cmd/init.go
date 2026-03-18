@@ -4,10 +4,12 @@ Copyright © 2026 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"log/slog"
 	"os"
 
 	"github.com/arnegoeteyn/gh-revpr/github"
 	"github.com/arnegoeteyn/gh-revpr/gitops"
+	"github.com/arnegoeteyn/gh-revpr/state"
 	"github.com/arnegoeteyn/gh-revpr/ui"
 	"github.com/spf13/cobra"
 )
@@ -69,6 +71,17 @@ Later commits can be reviewed by running 'revpr continue'.`,
 		ui.Info("Worktree at: %s", wt.Filesystem.Root())
 
 		ui.PRBody(pullRequest.Body)
+
+		slog.Debug("storing revpr state", "currentPR", pr)
+		if err := os.Chdir(wt.Filesystem.Root()); err != nil {
+			slog.Error("could not navigate to new worktree", "path", wt.Filesystem.Root())
+			ui.Error("could not navigate to new worktree")
+		}
+
+		if err := state.SetCurrentPR(pr); err != nil {
+			slog.Error("could not store config file", "error", err.Error())
+			ui.Error("could not store config file")
+		}
 	},
 }
 
