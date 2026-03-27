@@ -42,7 +42,14 @@ Later commits can be reviewed by running 'revpr continue'.`,
 
 		if !createWorktree {
 			Debug("using review worktree")
-			panic("not yet implemented")
+			existingRepo, err := gitops.GetReviewWorktree()
+			if err != nil {
+				ui.Error("Failed to use review worktree: %v", err)
+				Debug("Failed to use review worktree", "error", err)
+				os.Exit(1)
+			}
+
+			repo = existingRepo
 		} else {
 			Debug("creating worktree")
 			newRepo, err := gitops.CreateReviewWorktree()
