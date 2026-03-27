@@ -36,26 +36,26 @@ Later commits can be reviewed by running 'revpr continue'.`,
 		var repo *git.Repository
 		createWorktree, err := cmd.Flags().GetBool(flagCreateWorktree)
 		if err != nil {
-			Debug("failed to get flag", "flag", flagCreateWorktree, "err", err)
+			slog.Debug("failed to get flag", "flag", flagCreateWorktree, "err", err)
 			createWorktree = false
 		}
 
 		if !createWorktree {
-			Debug("using review worktree")
+			slog.Debug("using review worktree")
 			existingRepo, err := gitops.GetReviewWorktree()
 			if err != nil {
 				ui.Error("Failed to use review worktree: %v", err)
-				Debug("Failed to use review worktree", "error", err)
+				slog.Debug("Failed to use review worktree", "error", err)
 				os.Exit(1)
 			}
 
 			repo = existingRepo
 		} else {
-			Debug("creating worktree")
+			slog.Debug("creating worktree")
 			newRepo, err := gitops.CreateReviewWorktree()
 			if err != nil {
 				ui.Error("Failed to create worktree: %v", err)
-				Debug("Failed to create worktree", "error", err)
+				slog.Debug("Failed to create worktree", "error", err)
 				os.Exit(1)
 			}
 
@@ -65,33 +65,33 @@ Later commits can be reviewed by running 'revpr continue'.`,
 		gh, err := github.NewClient()
 		if err != nil {
 			ui.Error("Failed to create GitHub client: %v", err)
-			Debug("Failed to create GitHub client", "error", err)
+			slog.Debug("Failed to create GitHub client", "error", err)
 			os.Exit(1)
 		}
 
 		pullRequest, err := gh.GetPullRequest(pr)
 		if err != nil {
 			ui.Error("Failed to get PR branch: %v", err)
-			Debug("Failed to get PR branch", "error", err)
+			slog.Debug("Failed to get PR branch", "error", err)
 			os.Exit(1)
 		}
 
 		branch := pullRequest.Head.Ref
-		Debug("Got PR branch", "branch", branch)
+		slog.Debug("Got PR branch", "branch", branch)
 
 		if err := gitops.ResetToRemoteBranch(repo, branch); err != nil {
 			ui.Error("Failed to reset to branch: %v", err)
-			Debug("Failed to reset to branch", "error", err)
+			slog.Debug("Failed to reset to branch", "error", err)
 			os.Exit(1)
 		}
-		Debug("Reset to branch", "branch", branch)
+		slog.Debug("Reset to branch", "branch", branch)
 
 		ui.Success("Created worktree for review")
 
 		wt, err := repo.Worktree()
 		if err != nil {
 			ui.Error("Failed to get worktree: %v", err)
-			Debug("Failed to get worktree", "error", err)
+			slog.Debug("Failed to get worktree", "error", err)
 			os.Exit(1)
 		}
 		ui.Info("Worktree at: %s", wt.Filesystem.Root())
