@@ -11,7 +11,12 @@ import (
 	"github.com/arnegoeteyn/gh-revpr/gitops"
 	"github.com/arnegoeteyn/gh-revpr/state"
 	"github.com/arnegoeteyn/gh-revpr/ui"
+	"github.com/go-git/go-git/v6"
 	"github.com/spf13/cobra"
+)
+
+const (
+	flagCreateWorktree = "create-worktree"
 )
 
 // initCmd represents the init command
@@ -28,13 +33,34 @@ Later commits can be reviewed by running 'revpr continue'.`,
 
 		ui.Info("Starting init for PR %s", pr)
 
-		repo, err := gitops.CreateReviewWorktree()
+		var repo *git.Repository
+		createWorktree, err := cmd.Flags().GetBool(flagCreateWorktree)
 		if err != nil {
-			ui.Error("Failed to create worktree: %v", err)
-			Debug("Failed to create worktree", "error", err)
-			os.Exit(1)
+			Debug("failed to get flag", "flag", flagCreateWorktree, "err", err)
+			createWorktree = false
 		}
-		Debug("Created worktree")
+
+		if !createWorktree {
+			Debug("using review worktree")
+			existingRepo, err := gitops.GetReviewWorktree()
+			if err != nil {
+				ui.Error("Failed to use review worktree: %v", err)
+				Debug("Failed to use review worktree", "error", err)
+				os.Exit(1)
+			}
+
+			repo = existingRepo
+		} else {
+			Debug("creating worktree")
+			newRepo, err := gitops.CreateReviewWorktree()
+			if err != nil {
+				ui.Error("Failed to create worktree: %v", err)
+				Debug("Failed to create worktree", "error", err)
+				os.Exit(1)
+			}
+
+			repo = newRepo
+		}
 
 		gh, err := github.NewClient()
 		if err != nil {
@@ -87,4 +113,6 @@ Later commits can be reviewed by running 'revpr continue'.`,
 
 func init() {
 	rootCmd.AddCommand(initCmd)
+
+	initCmd.Flags().BoolP("create-worktree", "c", false, "Generate a new worktree to review in. If this option is not set a default `review` worktree will be expected to exist and used.")
 }

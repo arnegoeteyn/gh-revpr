@@ -30,7 +30,20 @@ func CreateReviewWorktree() (*git.Repository, error) {
 	return wt, nil
 }
 
-func addWorktree(name string) (*git.Repository, error) {
+// GetReviewWorktree returns an existing worktree named "review".
+// It searches upward from the current directory to find the git repository,
+// then opens the worktree at the expected location.
+func GetReviewWorktree() (*git.Repository, error) {
+	return openWorktree("review")
+}
+
+// worktreeContext holds the common setup needed for worktree operations.
+type worktreeContext struct {
+	manager   *xworktree.Worktree
+	commonDir string
+}
+
+func newWorktreeContext() (*worktreeContext, error) {
 	repo, err := git.PlainOpenWithOptions(".", &git.PlainOpenOptions{
 		DetectDotGit: true,
 	})
@@ -64,20 +77,50 @@ func addWorktree(name string) (*git.Repository, error) {
 		}
 	}
 
-	worktreeManager, err := xworktree.New(mainRepo.Storer)
+	manager, err := xworktree.New(mainRepo.Storer)
 	if err != nil {
 		return nil, fmt.Errorf("could not create worktree manager: %w", err)
 	}
 
-	wtpath := filepath.Join(commonDir, "..", worktreeSubdir, name)
+	return &worktreeContext{
+		manager:   manager,
+		commonDir: commonDir,
+	}, nil
+}
 
-	worktreeDir := osfs.New(wtpath)
+func (c *worktreeContext) worktreePath(name string) string {
+	return filepath.Join(c.commonDir, "..", worktreeSubdir, name)
+}
 
-	if err := worktreeManager.Add(worktreeDir, name); err != nil {
+func openWorktree(name string) (*git.Repository, error) {
+	ctx, err := newWorktreeContext()
+	if err != nil {
+		return nil, err
+	}
+
+	worktreeDir := osfs.New(ctx.worktreePath(name))
+
+	repository, err := ctx.manager.Open(worktreeDir)
+	if err != nil {
+		return nil, fmt.Errorf("could not open worktree: %w", err)
+	}
+
+	return repository, nil
+}
+
+func addWorktree(name string) (*git.Repository, error) {
+	ctx, err := newWorktreeContext()
+	if err != nil {
+		return nil, err
+	}
+
+	worktreeDir := osfs.New(ctx.worktreePath(name))
+
+	if err := ctx.manager.Add(worktreeDir, name); err != nil {
 		return nil, fmt.Errorf("could not create worktree: %w", err)
 	}
 
-	repository, err := worktreeManager.Open(worktreeDir)
+	repository, err := ctx.manager.Open(worktreeDir)
 	if err != nil {
 		return nil, fmt.Errorf("could not open worktree: %w", err)
 	}

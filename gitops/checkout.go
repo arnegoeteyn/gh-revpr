@@ -22,6 +22,7 @@ func Checkout(repo *git.Repository, branch string) error {
 	branchRef := plumbing.NewBranchReferenceName(branch)
 	if err := wt.Checkout(&git.CheckoutOptions{
 		Branch: branchRef,
+		Force:  true,
 	}); err != nil {
 		return fmt.Errorf("could not checkout branch %q: %w", branch, err)
 	}
