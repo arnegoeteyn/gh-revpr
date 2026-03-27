@@ -23,10 +23,11 @@ const (
 var initCmd = &cobra.Command{
 	Use:   "init <PR>",
 	Short: "Initialize a PR review.",
-	Long: `Start with reviewing a PR. Init will create a new worktree that can be used for reviewing.
+	Long: `Start with reviewing a PR. This tool expects you to have a worktree called 'review' with a branch called 'review'.
 
-By default it will start an interactive rebase and do a mixed reset of the first commit.
-Later commits can be reviewed by running 'revpr continue'.`,
+	If you want to create a new worktree to do your review in you can use the --create-worktree flag.
+`,
+
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		pr := args[0]
