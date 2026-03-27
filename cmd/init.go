@@ -43,71 +43,42 @@ Later commits can be reviewed by running 'revpr continue'.`,
 		if !createWorktree {
 			slog.Debug("using review worktree")
 			existingRepo, err := gitops.GetReviewWorktree()
-			if err != nil {
-				ui.Error("Failed to use review worktree: %v", err)
-				slog.Debug("Failed to use review worktree", "error", err)
-				os.Exit(1)
-			}
-
+			handleErr(err, "failed to use review worktree")
 			repo = existingRepo
 		} else {
 			slog.Debug("creating worktree")
 			newRepo, err := gitops.CreateReviewWorktree()
-			if err != nil {
-				ui.Error("Failed to create worktree: %v", err)
-				slog.Debug("Failed to create worktree", "error", err)
-				os.Exit(1)
-			}
-
+			handleErr(err, "failed to create worktree")
 			repo = newRepo
 		}
 
 		gh, err := github.NewClient()
-		if err != nil {
-			ui.Error("Failed to create GitHub client: %v", err)
-			slog.Debug("Failed to create GitHub client", "error", err)
-			os.Exit(1)
-		}
+		handleErr(err, "failed to create GitHub client")
 
 		pullRequest, err := gh.GetPullRequest(pr)
-		if err != nil {
-			ui.Error("Failed to get PR branch: %v", err)
-			slog.Debug("Failed to get PR branch", "error", err)
-			os.Exit(1)
-		}
+		handleErr(err, "failed to get PR branch")
 
 		branch := pullRequest.Head.Ref
 		slog.Debug("Got PR branch", "branch", branch)
 
-		if err := gitops.ResetToRemoteBranch(repo, branch); err != nil {
-			ui.Error("Failed to reset to branch: %v", err)
-			slog.Debug("Failed to reset to branch", "error", err)
-			os.Exit(1)
-		}
+		err = gitops.ResetToRemoteBranch(repo, branch)
+		handleErr(err, "failed to reset to branch")
 		slog.Debug("Reset to branch", "branch", branch)
 
 		ui.Success("Created worktree for review")
 
 		wt, err := repo.Worktree()
-		if err != nil {
-			ui.Error("Failed to get worktree: %v", err)
-			slog.Debug("Failed to get worktree", "error", err)
-			os.Exit(1)
-		}
+		handleErr(err, "failed to get worktree")
 		ui.Info("Worktree at: %s", wt.Filesystem.Root())
 
 		ui.PRBody(pullRequest.Body)
 
 		slog.Debug("storing revpr state", "currentPR", pr)
-		if err := os.Chdir(wt.Filesystem.Root()); err != nil {
-			slog.Error("could not navigate to new worktree", "path", wt.Filesystem.Root())
-			ui.Error("could not navigate to new worktree")
-		}
+		err = os.Chdir(wt.Filesystem.Root())
+		handleErr(err, "could not navigate to new worktree")
 
-		if err := state.SetCurrentPR(pr); err != nil {
-			slog.Error("could not store config file", "error", err.Error())
-			ui.Error("could not store config file")
-		}
+		err = state.SetCurrentPR(pr)
+		handleErr(err, "could not store config file")
 	},
 }
 
