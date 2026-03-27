@@ -92,13 +92,17 @@ func (c *worktreeContext) worktreePath(name string) string {
 	return filepath.Join(c.commonDir, "..", worktreeSubdir, name)
 }
 
+func (c *worktreeContext) worktreePathWithoutSubdir(name string) string {
+	return filepath.Join(c.commonDir, "..", name)
+}
+
 func openWorktree(path string) (*git.Repository, error) {
 	ctx, err := newWorktreeContext()
 	if err != nil {
 		return nil, err
 	}
 
-	worktreeDir := osfs.New(path)
+	worktreeDir := osfs.New(ctx.worktreePathWithoutSubdir(path))
 
 	repository, err := ctx.manager.Open(worktreeDir)
 	if err != nil {

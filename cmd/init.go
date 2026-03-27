@@ -79,12 +79,12 @@ Later commits can be reviewed by running 'revpr continue'.`,
 		branch := pullRequest.Head.Ref
 		Debug("Got PR branch", "branch", branch)
 
-		if err := gitops.Checkout(repo, branch); err != nil {
-			ui.Error("Failed to checkout branch: %v", err)
-			Debug("Failed to checkout branch", "error", err)
+		if err := gitops.ResetToRemoteBranch(repo, branch); err != nil {
+			ui.Error("Failed to reset to branch: %v", err)
+			Debug("Failed to reset to branch", "error", err)
 			os.Exit(1)
 		}
-		Debug("Checked out branch", "branch", branch)
+		Debug("Reset to branch", "branch", branch)
 
 		ui.Success("Created worktree for review")
 
