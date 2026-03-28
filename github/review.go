@@ -21,7 +21,7 @@ const (
 
 type Review struct {
 	Event    ReviewEvent `json:"event"`
-	Comments []Comment   `json:"comments"`
+	Comments []Comment   `json:"comments,omitempty"`
 	Body     string      `json:"body"`
 }
 
