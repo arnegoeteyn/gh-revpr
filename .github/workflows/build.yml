@@ -1,0 +1,19 @@
+name: Test code
+on:
+  pull_request:
+    branches: ["*"]
+
+jobs:
+  testing-job:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    name: Run tests
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Run tests
+        run: go test --tags=test ./...
