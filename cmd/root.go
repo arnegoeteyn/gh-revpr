@@ -14,7 +14,7 @@ var rootCmd = &cobra.Command{
 	Short: "A brief description of your application",
 	Long:  `todo`,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		SetupLogging(debugFlag)
+		setupLogging(debugFlag)
 	},
 }
 

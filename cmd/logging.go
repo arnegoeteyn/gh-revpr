@@ -1,9 +1,11 @@
 package cmd
 
 import (
-	"context"
 	"log/slog"
 	"os"
+	"strings"
+
+	"github.com/arnegoeteyn/gh-revpr/ui"
 )
 
 var (
@@ -17,7 +19,7 @@ func init() {
 	slog.SetDefault(logger)
 }
 
-func SetupLogging(debugFlag bool) {
+func setupLogging(debugFlag bool) {
 	debug = debugFlag
 	if debug {
 		logLevel = slog.LevelDebug
@@ -28,18 +30,10 @@ func SetupLogging(debugFlag bool) {
 	slog.SetDefault(logger)
 }
 
-func Debug(msg string, args ...any) {
-	logger.Debug(msg, args...)
-}
-
-func Info(msg string, args ...any) {
-	logger.Info(msg, args...)
-}
-
-func Error(msg string, args ...any) {
-	logger.Error(msg, args...)
-}
-
-func WithContext(ctx context.Context) context.Context {
-	return context.WithValue(ctx, "logger", logger)
+func handleErr(err error, msg string) {
+	if err != nil {
+		slog.Debug(msg, "error", err)
+		ui.Error("%s", strings.ToUpper(msg))
+		os.Exit(1)
+	}
 }

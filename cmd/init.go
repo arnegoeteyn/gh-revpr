@@ -23,92 +23,67 @@ const (
 var initCmd = &cobra.Command{
 	Use:   "init <PR>",
 	Short: "Initialize a PR review.",
-	Long: `Start with reviewing a PR. Init will create a new worktree that can be used for reviewing.
+	Long: `Start with reviewing a PR. This tool expects you to have a worktree called 'review' with a branch called 'review'.
 
-By default it will start an interactive rebase and do a mixed reset of the first commit.
-Later commits can be reviewed by running 'revpr continue'.`,
+	If you want to create a new worktree to do your review in you can use the --create-worktree flag.
+`,
+
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		pr := args[0]
 
 		ui.Info("Starting init for PR %s", pr)
 
-		var repo *git.Repository
-		createWorktree, err := cmd.Flags().GetBool(flagCreateWorktree)
-		if err != nil {
-			Debug("failed to get flag", "flag", flagCreateWorktree, "err", err)
-			createWorktree = false
-		}
-
-		if !createWorktree {
-			Debug("using review worktree")
-			existingRepo, err := gitops.GetReviewWorktree()
-			if err != nil {
-				ui.Error("Failed to use review worktree: %v", err)
-				Debug("Failed to use review worktree", "error", err)
-				os.Exit(1)
-			}
-
-			repo = existingRepo
-		} else {
-			Debug("creating worktree")
-			newRepo, err := gitops.CreateReviewWorktree()
-			if err != nil {
-				ui.Error("Failed to create worktree: %v", err)
-				Debug("Failed to create worktree", "error", err)
-				os.Exit(1)
-			}
-
-			repo = newRepo
-		}
+		repo := getWorktree(cmd)
 
 		gh, err := github.NewClient()
-		if err != nil {
-			ui.Error("Failed to create GitHub client: %v", err)
-			Debug("Failed to create GitHub client", "error", err)
-			os.Exit(1)
-		}
+		handleErr(err, "failed to create GitHub client")
 
 		pullRequest, err := gh.GetPullRequest(pr)
-		if err != nil {
-			ui.Error("Failed to get PR branch: %v", err)
-			Debug("Failed to get PR branch", "error", err)
-			os.Exit(1)
-		}
+		handleErr(err, "failed to get PR branch")
 
 		branch := pullRequest.Head.Ref
-		Debug("Got PR branch", "branch", branch)
+		slog.Debug("Got PR branch", "branch", branch)
 
-		if err := gitops.Checkout(repo, branch); err != nil {
-			ui.Error("Failed to checkout branch: %v", err)
-			Debug("Failed to checkout branch", "error", err)
-			os.Exit(1)
-		}
-		Debug("Checked out branch", "branch", branch)
+		err = gitops.ResetToRemoteBranch(repo, branch)
+		handleErr(err, "failed to reset to branch")
+		slog.Debug("Reset to branch", "branch", branch)
 
 		ui.Success("Created worktree for review")
 
 		wt, err := repo.Worktree()
-		if err != nil {
-			ui.Error("Failed to get worktree: %v", err)
-			Debug("Failed to get worktree", "error", err)
-			os.Exit(1)
-		}
+		handleErr(err, "failed to get worktree")
 		ui.Info("Worktree at: %s", wt.Filesystem.Root())
 
 		ui.PRBody(pullRequest.Body)
 
 		slog.Debug("storing revpr state", "currentPR", pr)
-		if err := os.Chdir(wt.Filesystem.Root()); err != nil {
-			slog.Error("could not navigate to new worktree", "path", wt.Filesystem.Root())
-			ui.Error("could not navigate to new worktree")
-		}
+		err = os.Chdir(wt.Filesystem.Root())
+		handleErr(err, "could not navigate to new worktree")
 
-		if err := state.SetCurrentPR(pr); err != nil {
-			slog.Error("could not store config file", "error", err.Error())
-			ui.Error("could not store config file")
-		}
+		err = state.SetCurrentPR(pr)
+		handleErr(err, "could not store config file")
 	},
+}
+
+func getWorktree(cmd *cobra.Command) *git.Repository {
+	createWorktree, err := cmd.Flags().GetBool(flagCreateWorktree)
+	if err != nil {
+		slog.Debug("failed to get flag", "flag", flagCreateWorktree, "err", err)
+		createWorktree = false
+	}
+
+	if !createWorktree {
+		slog.Debug("using review worktree")
+		repo, err := gitops.GetReviewWorktree()
+		handleErr(err, "failed to use review worktree")
+		return repo
+	} else {
+		slog.Debug("creating worktree")
+		repo, err := gitops.CreateReviewWorktree()
+		handleErr(err, "failed to create worktree")
+		return repo
+	}
 }
 
 func init() {
